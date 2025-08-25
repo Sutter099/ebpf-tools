@@ -25,6 +25,10 @@ ifeq ($(wildcard $(ARCH)/),)
 $(error Architecture $(ARCH) is not supported yet. Please open an issue)
 endif
 
+CUSTOM_APPS = \
+	trace_slab_alloc \
+	#
+
 BZ_APPS = \
 	futexctn \
 	memleak \
@@ -87,6 +91,7 @@ APPS = \
 	vfsstat \
 	wakeuptime \
 	$(BZ_APPS) \
+	$(CUSTOM_APPS) \
 	#
 
 # export variables that are used in Makefile.btfgen as well.
