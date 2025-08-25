@@ -993,6 +993,8 @@ void print_linear_hist(unsigned int *vals, int vals_size, unsigned int base,
 	if (idx_max < 0)
 		return;
 
+	printf("idx min: %d, idx max: %d\n", idx_min, idx_max);
+
 	printf("     %-13s : count     distribution\n", val_type);
 	for (i = idx_min; i <= idx_max; i++) {
 		val = vals[i];
