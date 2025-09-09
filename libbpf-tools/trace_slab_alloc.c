@@ -16,11 +16,12 @@ static volatile int exiting = 0;
 static volatile __u64 start_time = 0;
 
 const char *desc[] = {
-	"___slab_alloc called",
+	"slab_alloc total",
+	"slab_alloc slow",
 	"get_partial(THIS_NODE)",
 	"get_partial(other)",
 	"new_slab(THIS_NODE)",
-	"new_slab(other)"
+	"new_slab(other)",
 };
 
 void sig_handler(int sig)
@@ -80,7 +81,7 @@ int main(void)
 		return 1;
 	}
 
-	bpf_map__set_max_entries(skel->maps.hists, 5);
+	bpf_map__set_max_entries(skel->maps.hists, 6);
 
 	err = trace_slab_alloc_bpf__load(skel);
 	if (err) {

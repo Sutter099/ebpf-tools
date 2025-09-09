@@ -30,13 +30,14 @@ struct {
 
 enum {
 	SLAB_ALLOC = 0,
+	SLAB_ALLOC_SLOW,
 	GET_PARTIAL_THIS_NODE,
 	GET_PARTIAL_OTHER,
 	NEW_SLAB_THIS_NODE,
-	NEW_SLAB_OTHER
+	NEW_SLAB_OTHER,
 };
 
-// all kinds of kprobe update here
+// all kinds of fentry update here
 static __always_inline void update_hist(u32 event_enum, u64 ts)
 {
 	u64 delta, *start_time, slot;
@@ -63,8 +64,8 @@ static __always_inline void update_hist(u32 event_enum, u64 ts)
 	__sync_fetch_and_add(&histp->slots[slot], 1);
 }
 
-SEC("kprobe/___slab_alloc")
-int BPF_KPROBE(trace_slab_alloc)
+SEC("fentry/__slab_alloc_node")
+int BPF_PROG(trace_slab_alloc)
 {
 	u64 ts = bpf_ktime_get_ns();
 
@@ -73,8 +74,18 @@ int BPF_KPROBE(trace_slab_alloc)
 	return 0;
 }
 
-SEC("kprobe/get_partial")
-int BPF_KPROBE(get_partial_probe, struct kmem_cache *s, int node, struct partial_context *pc)
+SEC("fentry/___slab_alloc")
+int BPF_PROG(trace_slab_alloc_slow)
+{
+	u64 ts = bpf_ktime_get_ns();
+
+	update_hist(SLAB_ALLOC_SLOW, ts);
+
+	return 0;
+}
+
+SEC("fentry/get_partial")
+int BPF_PROG(get_partial_probe, struct kmem_cache *s, int node, struct partial_context *pc)
 {
 	gfp_t flags = BPF_CORE_READ(pc, flags);
 	u64 ts = bpf_ktime_get_ns();
@@ -87,8 +98,8 @@ int BPF_KPROBE(get_partial_probe, struct kmem_cache *s, int node, struct partial
 	return 0;
 }
 
-SEC("kprobe/new_slab")
-int BPF_KPROBE(trace_new_slab, struct kmem_cache *s, gfp_t flags, int node)
+SEC("fentry/new_slab")
+int BPF_PROG(trace_new_slab, struct kmem_cache *s, gfp_t flags, int node)
 {
 	u64 ts = bpf_ktime_get_ns();
 	u32 event_type;
