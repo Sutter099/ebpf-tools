@@ -58,7 +58,7 @@ static __always_inline void update_hist(u32 event_enum, u64 ts)
 	}
 
 	delta = ts - *start_time;
-	slot = delta / BUCKET_SIZE_NS;
+	slot = delta / BUCKET_SIZE_100MS; // bucket size: 100 ms
 	if (slot >= MAX_SLOTS)
 		slot = MAX_SLOTS - 1;
 	__sync_fetch_and_add(&histp->slots[slot], 1);

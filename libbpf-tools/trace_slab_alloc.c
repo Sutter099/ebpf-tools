@@ -74,7 +74,7 @@ void print_csv(unsigned int *vals, int vals_size, unsigned int base,
 static int print_data(int fd, int type)
 {
 	__u32 lookup_key = -2, next_key;
-	char *units = "secs";
+	char *units = "100 ms";
 	struct hist hist;
 	int err;
 
