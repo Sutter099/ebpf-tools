@@ -10,6 +10,13 @@ ARCH ?= x86_64
 CURR_DIR := $(shell pwd)
 DESTDIR ?= $(shell pwd)/_install
 
+APPS_LINK_FLAG ?= -static
+PLY_LDFLAGS ?= -all-static
+ifeq ($(DYNAMIC_LINK),1)
+APPS_LINK_FLAG=
+PLY_LDFLAGS=
+endif
+
 ZSTD_PATH=$(CURR_DIR)/zstd
 ZLIB_PATH=$(CURR_DIR)/zlib
 LIBELF_PATH=$(CURR_DIR)/libelf
@@ -25,7 +32,7 @@ ply/Makefile:
 	cd ply && ./configure --host=$(ARCH) CC=$(CC)
 
 ply: ply/Makefile
-	make -C ply LDFLAGS="-all-static"
+	make -C ply LDFLAGS=$(PLY_LDFLAGS)
 
 ply_clean:
 	$(MAKE) -C ply clean
@@ -46,7 +53,9 @@ libelf: $(LIBZSTD) zlib
 	$(MAKE) -C libelf LDFLAGS="-L$(ZSTD_PATH)/lib -L$(ZLIB_PATH)" CFLAGS="-I$(ZSTD_PATH)/lib -I$(ZLIB_PATH)"
 
 libbpf-tools: $(LIBZSTD) zlib libelf
-	$(MAKE) -C libbpf-tools EXTRA_CFLAGS="-I$(ZSTD_PATH)/lib -I$(ZLIB_PATH) -I$(LIBELF_PATH)/include"
+	$(MAKE) -C libbpf-tools \
+		EXTRA_CFLAGS="-I$(ZSTD_PATH)/lib -I$(ZLIB_PATH) -I$(LIBELF_PATH)/include" \
+		EXTRA_LDFLAGS="$(APPS_LINK_FLAG) -L$(ZSTD_PATH)/lib -L$(ZLIB_PATH) -L$(LIBELF_PATH)"
 
 install:
 	$(MAKE) -C libbpf-tools DESTDIR=$(DESTDIR) install
