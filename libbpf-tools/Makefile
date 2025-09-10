@@ -27,6 +27,7 @@ endif
 
 CUSTOM_APPS = \
 	trace_slab_alloc \
+	hello \
 	#
 
 BZ_APPS = \
