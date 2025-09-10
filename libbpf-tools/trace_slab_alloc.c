@@ -24,6 +24,11 @@ const char *desc[] = {
 	"new_slab(other)",
 };
 
+enum print_type {
+	PRINT_HIST,
+	PRINT_CSV,
+};
+
 void sig_handler(int sig)
 {
 	exiting = true;
@@ -38,7 +43,35 @@ static __u64 get_current_time_ns(void)
 	return (__u64)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 }
 
-static int print_linear_hists(int fd)
+void print_csv(unsigned int *vals, int vals_size, unsigned int base,
+	       unsigned int step, const char *val_type, int event_type)
+{
+	int i, idx_min = -1, idx_max = -1;
+	unsigned int val, val_max = 0;
+
+	for (i = 0; i < vals_size; i++) {
+		val = vals[i];
+		if (val > 0) {
+			idx_max = i;
+			if (idx_min < 0)
+				idx_min = i;
+		}
+		if (val > val_max)
+			val_max = val;
+	}
+
+	if (idx_max < 0)
+		return;
+
+	for (i = idx_min; i <= idx_max; i++) {
+		val = vals[i];
+		if (!val)
+			continue;
+		printf("%s, %d, %d\n", desc[event_type], base + i * step, val);
+	}
+}
+
+static int print_data(int fd, int type)
 {
 	__u32 lookup_key = -2, next_key;
 	char *units = "secs";
@@ -52,8 +85,12 @@ static int print_linear_hists(int fd)
 			return -1;
 		}
 
-		printf("%s\n", desc[hist.event_type]);
-		print_linear_hist(hist.slots, MAX_SLOTS, 0, 1, units);
+		if (type == PRINT_HIST) {
+			printf("%s\n", desc[hist.event_type]);
+			print_linear_hist(hist.slots, MAX_SLOTS, 0, 1, units);
+		} else {
+			print_csv(hist.slots, MAX_SLOTS, 0, 1, units, hist.event_type);
+		}
 		lookup_key = next_key;
 	}
 
@@ -70,10 +107,22 @@ static int print_linear_hists(int fd)
 	return 0;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	struct trace_slab_alloc_bpf *skel;
+	int pr_type = PRINT_HIST;
 	int err, fd;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "--csv") == 0) {
+			pr_type = PRINT_CSV;
+		} else if (strcmp(argv[1], "--hist") == 0) {
+			pr_type = PRINT_HIST;
+		} else {
+			fprintf(stderr, "Usage: %s [--csv|--hist]\n", argv[0]);
+			return 1;
+		}
+	}
 
 	skel = trace_slab_alloc_bpf__open();
 	if (!skel) {
@@ -117,7 +166,7 @@ int main(void)
 		sleep(1);
 	}
 
-	err = print_linear_hists(fd);
+	err = print_data(fd, pr_type);
 	if (err) {
 		fprintf(stderr, "Failed to print hists\n");
 		goto cleanup;
